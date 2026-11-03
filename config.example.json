@@ -1,0 +1,22 @@
+{
+  "email": "your-account@qq.com",
+  "auth_code": "在此填入 QQ 邮箱 16 位授权码",
+  "imap_host": "imap.qq.com",
+  "imap_port": 993,
+  "folder": "INBOX",
+  "lookback_days": 60,
+  "poll_minutes": 20,
+  "remind_tiers_hours": [72, 24, 6, 2],
+  "fallback_hours": 48,
+  "web_port": 8765,
+  "show_floating_bar": true,
+  "auto_open_browser": true,
+  "quiet_hours": [0, 7],
+  "popup_enabled": true,
+  "wechat": {
+    "enabled": false,
+    "channel": "wecom",
+    "token": ""
+  },
+  "rule_version": ""
+}

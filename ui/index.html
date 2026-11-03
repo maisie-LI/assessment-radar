@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>">
+<title>测评雷达 · 别错过任何一个 DDL</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --panel:#ffffff; --line:#e5e9f0; --text:#1a2130;
+    --muted:#6b7688; --faint:#9aa4b5;
+    --blue:#2563eb; --blue-soft:#eff4ff;
+    --red:#dc2626; --red-soft:#fef2f2;
+    --orange:#ea580c; --orange-soft:#fff7ed;
+    --green:#16a34a; --green-soft:#f0fdf4;
+    --gray-soft:#f1f3f7;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Microsoft YaHei UI","PingFang SC",-apple-system,system-ui,sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:26px 22px 60px}
+
+  /* ---------- 顶部 ---------- */
+  header{display:flex; align-items:center; gap:14px; margin-bottom:20px}
+  .logo{font-size:22px; font-weight:700; letter-spacing:-.3px}
+  .logo span{color:var(--blue)}
+  .sub{color:var(--muted); font-size:12.5px; margin-top:1px}
+  .spacer{flex:1}
+  .btn{
+    border:1px solid var(--line); background:var(--panel); color:var(--text);
+    padding:8px 15px; border-radius:9px; font-size:13px; cursor:pointer;
+    font-family:inherit; transition:.15s; white-space:nowrap;
+  }
+  .btn:hover{border-color:#c9d2e0; background:#fafbfd}
+  .btn.primary{background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600}
+  .btn.primary:hover{background:#1d4ed8}
+  .btn:disabled{opacity:.55; cursor:default}
+  .icon-btn{
+    width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel);cursor:pointer;font-size:15px;color:var(--muted)
+  }
+  .icon-btn:hover{background:#fafbfd;color:var(--text)}
+
+  /* ---------- 统计 ---------- */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px}
+  .stat{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px}
+  .stat .k{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px}
+  .stat .v{font-size:26px; font-weight:700; margin-top:4px; letter-spacing:-.5px}
+  .stat.red .v{color:var(--red)} .stat.orange .v{color:var(--orange)}
+  .stat.green .v{color:var(--green)} .stat.blue .v{color:var(--blue)}
+
+  /* ---------- 配置向导 ---------- */
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px 22px; margin-bottom:18px}
+  .card h3{margin:0 0 4px; font-size:15px}
+  .card .hint{color:var(--muted); font-size:12.5px; margin-bottom:16px}
+  .steps{counter-reset:s; margin:0 0 18px; padding:0; list-style:none}
+  .steps li{
+    counter-increment:s; position:relative; padding-left:30px; margin-bottom:9px;
+    color:var(--muted); font-size:13px;
+  }
+  .steps li::before{
+    content:counter(s); position:absolute; left:0; top:1px;
+    width:20px;height:20px;border-radius:50%; background:var(--blue-soft);
+    color:var(--blue); font-size:11.5px; font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .steps b{color:var(--text); font-weight:600}
+  .field{margin-bottom:13px}
+  .field label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px}
+  input[type=text],input[type=password],input[type=number],input[type=datetime-local],select{
+    width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:9px;
+    font-size:13.5px; font-family:inherit; color:var(--text); background:#fcfdfe;
+  }
+  input:focus,select:focus{outline:none; border-color:var(--blue); background:#fff;
+    box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:13px}
+  .msg{margin-top:11px; font-size:12.5px; padding:9px 12px; border-radius:8px; display:none}
+  .msg.ok{display:block; background:var(--green-soft); color:var(--green)}
+  .msg.err{display:block; background:var(--red-soft); color:var(--red)}
+
+  /* ---------- 工具条 ---------- */
+  .toolbar{display:flex; align-items:center; gap:9px; margin-bottom:12px}
+  .seg{display:flex; background:var(--gray-soft); border-radius:9px; padding:3px}
+  .seg button{
+    border:0; background:transparent; padding:6px 14px; border-radius:7px;
+    font-size:12.5px; cursor:pointer; color:var(--muted); font-family:inherit;
+  }
+  .seg button.on{background:var(--panel); color:var(--text); font-weight:600;
+    box-shadow:0 1px 3px rgba(20,30,50,.09)}
+  .sync-line{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; margin-bottom:12px; font-size:12px; color:var(--muted);
+    font-family:Consolas,"Courier New",monospace; max-height:150px; overflow:auto;
+    white-space:pre-wrap; display:none;
+  }
+  .sync-line.show{display:block}
+
+  /* ---------- 任务列表 ---------- */
+  .list{display:flex; flex-direction:column; gap:9px}
+  .task{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px 16px; display:flex; align-items:center; gap:14px;
+    transition:.15s; position:relative; overflow:hidden;
+  }
+  .task:hover{border-color:#ccd5e3; box-shadow:0 2px 10px rgba(20,30,50,.05)}
+  .task::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line)}
+  .task.lv-red::before{background:var(--red)}
+  .task.lv-orange::before{background:var(--orange)}
+  .task.lv-green::before{background:var(--green)}
+  .task.done{opacity:.5}
+  .task.done .t-title{text-decoration:line-through}
+
+  .t-main{flex:1; min-width:0}
+  .t-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .t-company{font-size:14.5px; font-weight:700}
+  .t-title{color:var(--muted); font-size:12.5px; margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tag{font-size:10.5px; padding:1.5px 7px; border-radius:5px; font-weight:500;
+    white-space:nowrap}
+  .tag.warn{background:var(--orange-soft); color:var(--orange)}
+  .tag.info{background:var(--blue-soft); color:var(--blue)}
+  .tag.gray{background:var(--gray-soft); color:var(--muted)}
+  .tag.vendor{background:var(--gray-soft); color:var(--faint)}
+
+  /* 邮件里的关键时间节点：考点预约 / 准考证打印 / 考试时间 */
+  .t-events{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
+  .ev{font-size:11px; padding:2px 7px; border-radius:6px;
+    background:var(--gray-soft); color:var(--muted); white-space:nowrap}
+  .ev b{font-weight:600; color:var(--text); margin-left:2px}
+  .ev.sub{background:var(--orange-soft); color:var(--orange)}
+  .ev.sub b{color:var(--orange)}
+  .ev.exam{background:var(--red-soft); color:var(--red)}
+  .ev.exam b{color:var(--red)}
+  .ev.dl{background:var(--blue-soft); color:var(--blue)}
+  .ev.dl b{color:var(--blue)}
+  .ev.receipt{background:#efe7fa; color:#7a4bd0}
+  .ev.receipt b{color:#7a4bd0}
+
+  /* 卡片五字段：时间 / 内容 / 回执截止 / 试考 / 正式考试 */
+  .t-fields{margin-top:6px; display:flex; flex-direction:column; gap:3px}
+  .fld{display:flex; gap:8px; font-size:12.5px; line-height:1.55}
+  .fld .k{flex:0 0 58px; color:var(--faint); font-size:11.5px; padding-top:1px}
+  .fld .v{color:var(--text); word-break:break-all}
+  .fld .v i{font-style:normal; color:var(--faint); font-size:11px; margin-left:5px}
+  .fld .v em{font-style:normal; color:var(--orange); font-size:11px; margin-left:5px}
+  .fld.rcpt .v{color:#7a4bd0; font-weight:600}
+  .fld.pretest .v{color:var(--orange)}
+  .fld.exam .v{color:var(--red); font-weight:600}
+
+  .t-due{text-align:right; min-width:150px}
+  .countdown{font-size:13.5px; font-weight:700; white-space:nowrap}
+  .countdown.red{color:var(--red)} .countdown.orange{color:var(--orange)}
+  .countdown.green{color:var(--green)} .countdown.gray{color:var(--faint)}
+  .due-abs{font-size:11.5px; color:var(--faint); margin-top:2px}
+
+  .t-actions{display:flex; gap:5px}
+  .mini{
+    border:1px solid var(--line); background:#fff; border-radius:7px;
+    padding:5px 10px; font-size:11.5px; cursor:pointer; color:var(--muted);
+    font-family:inherit; white-space:nowrap;
+  }
+  .mini:hover{background:var(--gray-soft); color:var(--text); border-color:#ccd5e3}
+  .mini.ok:hover{background:var(--green-soft); color:var(--green); border-color:#bbf0cd}
+  .mini.del:hover{background:var(--red-soft); color:var(--red); border-color:#fbd0d0}
+
+  .empty{text-align:center; padding:56px 20px; color:var(--faint)}
+  .empty .big{font-size:34px; margin-bottom:10px}
+
+  /* ---------- 模态 ---------- */
+  .mask{
+    position:fixed; inset:0; background:rgba(20,28,42,.35); display:none;
+    align-items:flex-start; justify-content:center; padding-top:64px; z-index:50;
+    backdrop-filter:blur(2px);
+  }
+  .mask.show{display:flex}
+  .modal{
+    background:var(--panel); border-radius:16px; width:520px; max-width:92vw;
+    padding:24px 26px; box-shadow:0 20px 60px rgba(15,25,45,.22);
+    max-height:82vh; overflow:auto;
+  }
+  .modal h3{margin:0 0 16px; font-size:16px}
+  .modal .foot{display:flex; gap:9px; justify-content:flex-end; margin-top:20px}
+  .modal .hint{color:var(--muted); font-size:12px; margin-top:-8px; margin-bottom:16px}
+  .sep{height:1px; background:var(--line); margin:18px 0 16px}
+  .sec-title{font-size:13px; font-weight:700; margin-bottom:11px}
+  .chk{display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:9px; cursor:pointer}
+  .chk input{width:15px; height:15px; accent-color:var(--blue); cursor:pointer}
+  .chk small{color:var(--faint); font-size:11.5px}
+  .subbox{
+    background:var(--gray-soft); border-radius:10px; padding:14px 16px;
+    margin:4px 0 0; display:none;
+  }
+  .subbox.show{display:block}
+  .howto{font-size:11.5px; color:var(--muted); line-height:1.7; margin:0 0 12px}
+  .howto b{color:var(--text)}
+  footer{text-align:center; color:var(--faint); font-size:11.5px; margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo">测评<span>雷达</span></div>
+      <div class="sub" id="subline">正在连接…</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn primary" id="btnSync">检查邮件</button>
+    <button class="icon-btn" id="btnSettings" title="设置">⚙</button>
+  </header>
+
+  <!-- 未配置时的引导 -->
+  <div class="card" id="setupCard" style="display:none">
+    <h3>先接上你的 QQ 邮箱</h3>
+    <div class="hint">只读取测评类邮件，不发送、不删除、不修改你的邮箱。授权码只存在本机 config.json 里。</div>
+    <ol class="steps">
+      <li>浏览器打开 <b>mail.qq.com</b> 并登录</li>
+      <li>点右上角 <b>齿轮 / 头像 → 设置 → 账号与安全 → 安全设置</b></li>
+      <li>找到 <b>POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV 服务</b>，点<b>开启</b></li>
+      <li>按提示做短信验证，页面会给出 <b>16 位授权码</b>（关掉就看不到了，先复制）</li>
+    </ol>
+    <div class="row2">
+      <div class="field">
+        <label>QQ 邮箱地址</label>
+        <input type="text" id="cfgEmail" placeholder="例如 123456789@qq.com">
+      </div>
+      <div class="field">
+        <label>16 位授权码（不是 QQ 密码）</label>
+        <input type="password" id="cfgCode" placeholder="粘贴授权码">
+      </div>
+    </div>
+    <div class="msg" id="setupMsg"></div>
+    <div style="display:flex; gap:9px; margin-top:16px">
+      <button class="btn primary" id="btnSaveCfg">保存并测试连接</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat red"><div class="k">已超时</div><div class="v" id="sOverdue">0</div></div>
+    <div class="stat orange"><div class="k">24 小时内到期</div><div class="v" id="s24">0</div></div>
+    <div class="stat blue"><div class="k">7 天内到期</div><div class="v" id="s7">0</div></div>
+    <div class="stat green"><div class="k">已完成</div><div class="v" id="sDone">0</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg">
+      <button data-f="pending" class="on">待办</button>
+      <button data-f="done">已完成</button>
+      <button data-f="all">全部</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnAdd">+ 手动添加</button>
+  </div>
+
+  <div class="sync-line" id="syncLog"></div>
+  <div class="list" id="list"></div>
+  <footer id="foot"></footer>
+</div>
+
+<!-- 设置 -->
+<div class="mask" id="maskSettings">
+  <div class="modal">
+    <h3>设置</h3>
+    <div class="hint">改了邮箱或授权码后记得点「测试连接」确认能通。</div>
+    <div class="field"><label>QQ 邮箱地址</label><input type="text" id="sEmail"></div>
+    <div class="field"><label>授权码</label><input type="password" id="sCode" placeholder="留空表示不修改"></div>
+    <div class="row2">
+      <div class="field"><label>每隔几分钟检查一次邮件</label><input type="number" id="sPoll" min="5" max="720"></div>
+      <div class="field"><label>没写截止时间时，按收到后几小时推算</label><input type="number" id="sFallback" min="6" max="720"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>提前多久提醒（小时，逗号分隔）</label><input type="text" id="sTiers" placeholder="72,24,6,2"></div>
+      <div class="field"><label>往回翻多久的邮件（天）</label><input type="number" id="sLookback" min="7" max="365"></div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="sec-title">提醒方式</div>
+    <label class="chk"><input type="checkbox" id="sPopup"> 桌面弹窗
+      <small>置顶窗口弹在右下角，最抓注意力</small></label>
+    <label class="chk"><input type="checkbox" id="sWechat"> 微信推送
+      <small>不在电脑前也能收到</small></label>
+
+    <div class="subbox" id="wechatBox">
+      <div class="row2">
+        <div class="field"><label>推送服务</label>
+          <select id="sChannel">
+            <option value="wecom">企业微信群机器人（推荐）</option>
+            <option value="pushplus">PushPlus（备选）</option>
+          </select>
+        </div>
+        <div class="field"><label id="sTokenLabel">Webhook 地址</label>
+          <input type="password" id="sToken" placeholder="留空表示不修改">
+        </div>
+      </div>
+
+      <div class="howto" id="howtoWecom">
+        <b>4 步拿到 Webhook 地址</b>（约 10 分钟，配一次长期有效，官方免费不限量）：<br>
+        1. 手机装「<b>企业微信</b>」App，用微信扫码注册 —— <b>账号类型必须选「企业」</b>，
+           选"个人团队"没有管理后台，消息到不了个人微信<br>
+        2. App 里 <b>通讯录 → 创建群聊 → 内部群</b>（外部群加不了机器人），只拉自己一个人<br>
+        3. 进这个群 → 右上角 <b>···</b> → <b>群机器人</b> → 添加机器人 → 复制 <b>Webhook 地址</b><br>
+        4. 电脑打开 <b>work.weixin.qq.com</b> 管理后台 → 我的企业 → <b>微信插件</b> →
+           勾选「允许成员在微信插件中接收和回复聊天消息」→ 扫码关注<br>
+        做完后机器人消息会出现在你<b>个人微信</b>的「企业微信联系人」里。
+      </div>
+
+      <div class="howto" id="howtoPushplus" style="display:none">
+        <b>2 步拿到 token</b>：浏览器打开 <b>pushplus.plus</b> → 右上角「登录」用<b>微信扫码</b> →
+        在「一对一消息」页面复制那串 <b>32 位用户 token</b>，粘到上面。<br>
+        消息会出现在微信的<b>公众号会话</b>里，是第三方服务，免费额度有限。
+      </div>
+
+      <button class="btn" id="btnWechatTest">发一条测试消息到微信</button>
+      <div class="msg" id="wxMsg"></div>
+    </div>
+
+    <div class="msg" id="setMsg"></div>
+    <div class="foot">
+      <button class="btn" id="btnCloseSet">关闭</button>
+      <button class="btn" id="btnTest">测试连接</button>
+      <button class="btn primary" id="btnSaveSet">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 手动添加 -->
+<div class="mask" id="maskAdd">
+  <div class="modal">
+    <h3>手动添加一个测评</h3>
+    <div class="hint">短信通知、或者邮件没抓到的，可以在这里补。</div>
+    <div class="field"><label>公司 / 项目</label><input type="text" id="aCompany" placeholder="例如 中国银行"></div>
+    <div class="field"><label>说明</label><input type="text" id="aTitle" placeholder="例如 AI 岗在线测评"></div>
+    <div class="field"><label>截止时间</label><input type="datetime-local" id="aDue"></div>
+    <div class="msg" id="addMsg"></div>
+    <div class="foot">
+      <button class="btn" id="btnCloseAdd">取消</button>
+      <button class="btn primary" id="btnSaveAdd">添加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CONF = {filter:'pending', tasks:[], configured:false};
+const WX = {hasToken: false};
+const $ = s => document.querySelector(s);
+const esc = s => (s??'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* 邮件里的关键时间节点（前置任务/考试/截止），存的是 JSON 字符串 */
+function parseEvents(raw){
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter(e => e && e.label && e.time).slice(0,6) : [];
+  } catch (e) { return []; }
+}
+
+/* 截止时间的「来源」——让用户一眼知道这是邮件明写的还是推算的 */
+const BASIS = {
+  exact:'邮件明写', day:'邮件只写到日期', range:'取邮件时间段终点',
+  relative:'按邮件有效期推算', inferred:'按收件时间推算', manual:'手动添加'
+};
+
+function evSpan(e){
+  const s = e.start ? e.start.slice(5,16) : '';
+  const en = (e.end || e.time || '').slice(5,16);
+  return (s && s !== en) ? `${s} → ${en}` : en;
+}
+
+/* 相对时长推算的邮件，额外给出提前一天的「建议完成日」 */
+function suggestLine(t){
+  if (t.confidence !== 'relative' || !t.due_at) return '';
+  const d = new Date(t.due_at.replace(' ','T'));
+  if (isNaN(d)) return '';
+  d.setDate(d.getDate() - 1);
+  const p = n => String(n).padStart(2,'0');
+  return `提醒：建议 ${d.getMonth()+1}-${p(d.getDate())} 之前完成`;
+}
+
+
+/* 切换推送服务时，同步更新标签、占位提示和操作说明 */
+function refreshChannelUI(){
+  const ch = $('#sChannel').value;
+  $('#howtoWecom').style.display = ch === 'wecom' ? 'block' : 'none';
+  $('#howtoPushplus').style.display = ch === 'pushplus' ? 'block' : 'none';
+  $('#sTokenLabel').textContent = ch === 'wecom' ? 'Webhook 地址' : '用户 Token';
+  $('#sToken').placeholder = WX.hasToken
+    ? '（已保存，留空不修改）'
+    : (ch === 'wecom' ? '粘贴 https://qyapi.weixin.qq.com/cgi-bin/webhook/...' : '粘贴 32 位 token');
+}
+
+async function api(path, opt={}, timeoutMs=30000) {
+  // 关键：必须带超时 + 必须把错误抛出来，否则按钮会永远停在"处理中"
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(path, {headers:{'Content-Type':'application/json'},
+                                 signal: ctl.signal, ...opt});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    if (e.name === 'AbortError')
+      throw new Error(`请求超时（${Math.round(timeoutMs/1000)} 秒无响应）`);
+    if (e instanceof TypeError)
+      throw new Error('连不上本地程序 —— 测评雷达可能已经退出了，请重新双击启动脚本');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* ---------- 倒计时 ---------- */
+function remain(dueStr){
+  const due = new Date(dueStr.replace(' ','T') + ':00');
+  const ms = due - new Date();
+  const secs = ms/1000;
+  if (secs < 0){
+    const h = -secs/3600;
+    if (h >= 24) return {txt:`已超时 ${Math.floor(h/24)} 天`, cls:'red', lv:'red', urgent:9};
+    return {txt:`已超时 ${Math.max(1,Math.floor(h))} 小时`, cls:'red', lv:'red', urgent:9};
+  }
+  if (secs < 3600) return {txt:`剩 ${Math.floor(secs/60)} 分钟`, cls:'red', lv:'red', urgent:8};
+  if (secs < 86400){
+    const h = Math.floor(secs/3600), m = Math.floor((secs%3600)/60);
+    return {txt:`剩 ${h} 小时 ${m} 分`, cls: secs<6*3600?'red':'orange', lv: secs<6*3600?'red':'orange', urgent: secs<6*3600?7:6};
+  }
+  const d = Math.floor(secs/86400), h = Math.floor((secs%86400)/3600);
+  return {txt:`剩 ${d} 天 ${h} 小时`, cls: d<=3?'orange':'green', lv: d<=3?'orange':'green', urgent: d<=3?5:3};
+}
+
+const CONF_LABEL = {
+  exact:null, day:['warn','未写具体时刻，按当日 23:59 计'],
+  range:['info','时间段，取结束时间'],
+  relative:['warn','按邮件里的有效期推算'], inferred:['warn','邮件没写截止时间，已推算，建议核对'],
+  manual:['info','手动添加']
+};
+
+/* ---------- 渲染 ---------- */
+function render(){
+  const list = $('#list');
+  let rows = CONF.tasks;
+  if (CONF.filter !== 'all') rows = rows.filter(t => t.status === CONF.filter);
+
+  rows = rows.slice().sort((a,b) => {
+    if ((a.status==='done') !== (b.status==='done')) return a.status==='done' ? 1 : -1;
+    return new Date(a.due_at.replace(' ','T')) - new Date(b.due_at.replace(' ','T'));
+  });
+
+  if (!rows.length){
+    list.innerHTML = `<div class="empty"><div class="big">${CONF.filter==='done'?'🗂':'✅'}</div>
+      ${CONF.filter==='done' ? '还没有已完成的记录' : (CONF.configured ? '没有待办测评，安心' : '先完成上面的邮箱配置')}</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(t => {
+    const r = remain(t.due_at);
+    const done = t.status === 'done';
+    const cl = CONF_LABEL[t.confidence];
+    const tags = [];
+    if (cl && !done) tags.push(`<span class="tag ${cl[0]}" title="${esc(t.evidence||'')}">${cl[1]}</span>`);
+    if (t.vendor) tags.push(`<span class="tag vendor">${esc(t.vendor)}</span>`);
+    if (done) tags.push('<span class="tag gray">已完成</span>');
+    if (t.note) tags.push(`<span class="tag info">${esc(t.note.slice(0,28))}</span>`);
+
+    const dueDate = t.due_at.replace(' ','T');
+    const evs = parseEvents(t.events);
+    const receipt = evs.find(e => e.kind === 'receipt');
+    const exam = evs.find(e => e.kind === 'exam');
+    const fronts = evs.filter(e => ['pretest', 'sub', 'deadline'].includes(e.kind));
+    const basis = BASIS[t.confidence] || '';
+    const sug = suggestLine(t);
+
+    /* 五字段：时间 / 内容 / 回执截止 / 试考·前置 / 正式考试（开始 → 结束） */
+    const flds = [];
+    flds.push(`<div class="fld"><span class="k">时间</span><span class="v">${esc(t.due_at)}`
+      + (basis ? `<i>${esc(basis)}</i>` : '') + (sug ? `<em>${esc(sug)}</em>` : '') + `</span></div>`);
+    flds.push(`<div class="fld"><span class="k">内容</span><span class="v" title="${esc(t.source_subject||t.title)}">${esc(t.title)}</span></div>`);
+    if (receipt)
+      flds.push(`<div class="fld rcpt"><span class="k">回执截止</span><span class="v">${evSpan(receipt)} 前完成确认</span></div>`);
+    fronts.forEach(e => flds.push(`<div class="fld pretest"><span class="k">${e.kind==='pretest'?'试考':'前置'}</span><span class="v">${evSpan(e)}</span></div>`));
+    if (exam){
+      // 旧数据的 events 没有 name 字段，从 label 里回推是面试还是笔试
+      const exName = exam.name
+        || (/面试/.test(exam.label||'') ? '面试' : (/笔试/.test(exam.label||'') ? '笔试' : '考试'));
+      flds.push(`<div class="fld exam"><span class="k">正式${esc(exName)}</span><span class="v">${evSpan(exam)}</span></div>`);
+    }
+    const evHtml = `<div class="t-fields">${flds.join('')}</div>`;
+
+    return `<div class="task ${done?'done':''} lv-${done?'green':r.lv}" data-id="${t.id}">
+      <div class="t-main">
+        <div class="t-top">
+          <span class="t-company">${esc(t.company)}</span>${tags.join('')}
+        </div>
+        ${evHtml}
+      </div>
+      <div class="t-due">
+        <div class="countdown ${done?'gray':r.cls}">${done?'—':r.txt}</div>
+        <div class="due-abs">${esc(t.due_at)}</div>
+      </div>
+      <div class="t-actions">
+        ${done
+          ? `<button class="mini" data-act="undo">恢复</button>`
+          : `<button class="mini ok" data-act="done">完成</button>
+             <button class="mini" data-act="edit">改时间</button>
+             <button class="mini" data-act="remind">试弹窗</button>`}
+        <button class="mini del" data-act="del">删</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats(s){
+  $('#sOverdue').textContent = s.overdue ?? 0;
+  $('#s24').textContent = s.within24h ?? 0;
+  $('#s7').textContent = s.within7d ?? 0;
+  $('#sDone').textContent = s.done ?? 0;
+}
+
+/* ---------- 数据 ---------- */
+async function load(){
+  let d;
+  try {
+    d = await api('/api/tasks');
+    setOffline(false);
+  } catch (e) {
+    setOffline(true, e.message);
+    return;
+  }
+  CONF.tasks = d.tasks || [];
+  CONF.configured = d.configured;
+  renderStats(d.stats || {});
+  $('#setupCard').style.display = d.configured ? 'none' : 'block';
+  render();
+
+  const bits = [];
+  bits.push(d.configured ? esc(d.email) : '未配置邮箱');
+  if (d.last_sync) bits.push('上次检查 ' + d.last_sync.slice(5,16));
+  else bits.push('还没检查过');
+  bits.push(`每 ${d.poll_minutes} 分钟自动检查`);
+  if (d.wechat_on) bits.push('微信推送已开');
+  if (d.popup_on === false) bits.push('弹窗已关');
+  $('#subline').textContent = bits.join(' · ');
+  $('#foot').textContent = d.configured
+    ? '弹窗提醒会在到期前 ' + (d.tiers||[]).join(' / ') + ' 小时各弹一次'
+    : '';
+}
+
+let OFFLINE = false;
+function setOffline(off, msg){
+  if (off === OFFLINE) return;
+  OFFLINE = off;
+  let bar = $('#offlineBar');
+  if (!bar){
+    bar = document.createElement('div');
+    bar.id = 'offlineBar';
+    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;'
+      + 'background:#c0392b;color:#fff;font-size:13px;padding:9px 16px;text-align:center;'
+      + 'font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.2)';
+    document.body.appendChild(bar);
+  }
+  bar.style.display = off ? 'block' : 'none';
+  if (off) bar.textContent = '⚠️ ' + (msg || '本地程序已断开') + '（页面上的操作不会生效）';
+  document.body.style.paddingTop = off ? '38px' : '';
+}
+
+/* ---------- 事件 ---------- */
+$('#list').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const row = btn.closest('.task');
+  const id = row.dataset.id;
+  const act = btn.dataset.act;
+
+  if (act === 'done') await api(`/api/tasks/${id}`, {method:'PATCH', body:JSON.stringify({status:'done'})});
+  else if (act === 'undo') await api(`/api/tasks/${id}`, {method:'PATCH', body:JSON.stringify({status:'pending'})});
+  else if (act === 'del'){
+    if (!confirm('删除这条记录？')) return;
+    await api(`/api/tasks/${id}`, {method:'DELETE'});
+  } else if (act === 'remind'){
+    await api(`/api/tasks/${id}/remind`, {method:'POST'});
+    return;
+  } else if (act === 'edit'){
+    const cur = CONF.tasks.find(t => String(t.id) === id);
+    const v = prompt('新的截止时间（格式 2026-11-03 18:00）', cur.due_at);
+    if (!v) return;
+    const clean = v.trim().replace('T',' ');
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(clean)) { alert('格式不对，要像 2026-11-03 18:00'); return; }
+    await api(`/api/tasks/${id}`, {method:'PATCH', body:JSON.stringify({due_at:clean, confidence:'manual', evidence:'手动改过时间'})});
+  }
+  load();
+});
+
+document.querySelectorAll('.seg button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.seg button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    CONF.filter = b.dataset.f;
+    render();
+  };
+});
+
+/* 同步 */
+let pollTimer = null;
+$('#btnSync').onclick = async () => {
+  if (!CONF.configured){ $('#setupCard').scrollIntoView({behavior:'smooth'}); return; }
+  const btn = $('#btnSync');
+  btn.disabled = true; btn.textContent = '检查中…';
+  $('#syncLog').classList.add('show');
+  $('#syncLog').textContent = '正在启动…';
+  await api('/api/sync', {method:'POST'});
+  clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    const s = await api('/api/sync/status');
+    $('#syncLog').textContent = (s.logs||[]).join('\n') || '…';
+    $('#syncLog').scrollTop = $('#syncLog').scrollHeight;
+    if (!s.syncing){
+      clearInterval(pollTimer);
+      btn.disabled = false; btn.textContent = '检查邮件';
+      load();
+    }
+  }, 900);
+};
+
+/* 初始配置 */
+$('#btnSaveCfg').onclick = async () => {
+  const email = $('#cfgEmail').value.trim();
+  const code = $('#cfgCode').value.trim();
+  const m = $('#setupMsg');
+  if (!email || !code){ m.className='msg err'; m.textContent='邮箱和授权码都要填'; return; }
+  m.className='msg'; m.textContent='正在测试连接…'; m.style.display='block'; m.className='msg ok';
+  const t = await api('/api/config/test', {method:'POST', body:JSON.stringify({email, auth_code:code})});
+  if (!t.ok){ m.className='msg err'; m.textContent = t.message; return; }
+  await api('/api/config', {method:'POST', body:JSON.stringify({email, auth_code:code})});
+  m.className='msg ok'; m.textContent = '✅ ' + t.message + '，开始抓取邮件…';
+  load();
+  setTimeout(() => $('#btnSync').click(), 400);
+};
+
+/* 设置弹窗 */
+$('#btnSettings').onclick = async () => {
+  const c = await api('/api/config');
+  $('#sEmail').value = c.email || '';
+  $('#sCode').value = '';
+  $('#sCode').placeholder = c.has_auth_code ? '（已保存，留空不修改）' : '粘贴授权码';
+  $('#sPoll').value = c.poll_minutes ?? 20;
+  $('#sFallback').value = c.fallback_hours ?? 48;
+  $('#sTiers').value = (c.remind_tiers_hours||[]).join(',');
+  $('#sLookback').value = c.lookback_days ?? 60;
+
+  const w = c.wechat || {};
+  $('#sPopup').checked = c.popup_enabled !== false;
+  $('#sWechat').checked = !!w.enabled;
+  $('#sChannel').value = w.channel || 'wecom';
+  $('#sToken').value = '';
+  WX.hasToken = !!w.has_token;
+  refreshChannelUI();
+  $('#wechatBox').classList.toggle('show', !!w.enabled);
+
+  $('#setMsg').className='msg'; $('#setMsg').textContent='';
+  $('#wxMsg').className='msg'; $('#wxMsg').textContent='';
+  $('#maskSettings').classList.add('show');
+};
+
+$('#sChannel').onchange = refreshChannelUI;
+
+$('#sWechat').onchange = () => {
+  $('#wechatBox').classList.toggle('show', $('#sWechat').checked);
+};
+
+$('#btnWechatTest').onclick = async () => {
+  const m = $('#wxMsg');
+  const btn = $('#btnWechatTest');
+  m.className='msg ok'; m.textContent='正在发送，最多等 15 秒…';
+  btn.disabled = true;
+  try {
+    const t = await api('/api/wechat/test', {method:'POST', body:JSON.stringify({
+      wechat:{ token:$('#sToken').value.trim(), channel:$('#sChannel').value }
+    })}, 16000);
+    m.className = 'msg ' + (t.ok?'ok':'err');
+    m.textContent = (t.ok?'✅ ':'❌ ') + t.message;
+  } catch (e) {
+    m.className = 'msg err';
+    m.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+$('#btnCloseSet').onclick = () => $('#maskSettings').classList.remove('show');
+$('#btnTest').onclick = async () => {
+  const m = $('#setMsg');
+  const btn = $('#btnTest');
+  const email = $('#sEmail').value.trim();
+  const code = $('#sCode').value.trim();
+  m.className = 'msg'; m.style.display = 'block';
+  if (!email || !code){
+    m.className = 'msg err';
+    m.textContent = '❌ 邮箱地址和授权码都要填（授权码不是邮箱密码）';
+    return;
+  }
+  btn.disabled = true;
+  const old = btn.textContent;
+  btn.textContent = '测试中…';
+  m.className = 'msg';
+  m.textContent = '⏳ 正在连接 imap.qq.com（最多等 30 秒）…';
+  try {
+    const t = await api('/api/config/test', {method:'POST', body:JSON.stringify({
+      email, auth_code: code })}, 32000);
+    renderTestResult(m, t);
+  } catch (e) {
+    m.className = 'msg err';
+    m.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
+};
+
+function renderTestResult(m, t){
+  m.className = 'msg ' + (t.ok ? 'ok' : 'err');
+  let html = (t.ok ? '✅ ' : '❌ ')
+           + esc(t.message || '').replace(/\n/g, '<br>');
+  const steps = t.steps || [];
+  if (steps.length){
+    html += '<div style="margin-top:9px;font-size:12.5px;line-height:1.9;'
+          + 'color:var(--muted);font-weight:400">';
+    for (const s of steps){
+      const icon = s.ok === true ? '✓' : (s.ok === false ? '✗' : '·');
+      const color = s.ok === false ? 'var(--red)' : (s.ok === true ? '#2e9b57' : 'var(--muted)');
+      html += `<div style="color:${color}">${icon} ${esc(s.text)}`
+            + `<span style="color:var(--faint)"> ${s.t}s</span></div>`;
+    }
+    html += '</div>';
+  }
+  if (t.elapsed != null && t.ok)
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--faint)">总耗时 ${t.elapsed}s</div>`;
+  m.innerHTML = html;
+  m.style.whiteSpace = 'normal';
+}
+$('#btnSaveSet').onclick = async () => {
+  const body = {
+    email: $('#sEmail').value.trim(),
+    poll_minutes: +$('#sPoll').value || 20,
+    fallback_hours: +$('#sFallback').value || 48,
+    lookback_days: +$('#sLookback').value || 60,
+    remind_tiers_hours: $('#sTiers').value.split(',').map(x=>parseInt(x)).filter(x=>!isNaN(x)),
+    popup_enabled: $('#sPopup').checked,
+    wechat: { enabled: $('#sWechat').checked, channel: $('#sChannel').value }
+  };
+  const tk = $('#sToken').value.trim();
+  if (tk) body.wechat.token = tk;
+  const code = $('#sCode').value.trim();
+  if (code) body.auth_code = code;
+  const m = $('#setMsg');
+  try {
+    await api('/api/config', {method:'POST', body:JSON.stringify(body)});
+  } catch (e) {
+    m.className = 'msg err';
+    m.style.display = 'block';
+    m.textContent = '❌ 保存失败：' + e.message;
+    return;
+  }
+  $('#maskSettings').classList.remove('show');
+  load();
+};
+
+/* 手动添加 */
+$('#btnAdd').onclick = () => {
+  const d = new Date(Date.now() + 3*86400000);
+  const p = n => String(n).padStart(2,'0');
+  $('#aDue').value = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T18:00`;
+  $('#addMsg').className='msg'; $('#aCompany').value=''; $('#aTitle').value='';
+  $('#maskAdd').classList.add('show');
+};
+$('#btnCloseAdd').onclick = () => $('#maskAdd').classList.remove('show');
+$('#btnSaveAdd').onclick = async () => {
+  const company = $('#aCompany').value.trim();
+  const due = $('#aDue').value;
+  if (!company || !due){ $('#addMsg').className='msg err'; $('#addMsg').textContent='公司和时间都要填'; return; }
+  await api('/api/tasks', {method:'POST', body:JSON.stringify({
+    company, title: $('#aTitle').value.trim() || '测评', due_at: due.replace('T',' ')})});
+  $('#maskAdd').classList.remove('show');
+  load();
+};
+
+document.querySelectorAll('.mask').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+/* 每秒刷新倒计时，30 秒重拉数据 */
+setInterval(() => { if (CONF.tasks.length) render(); }, 1000 * 10);
+setInterval(load, 30000);
+load();
+// 支持用 #settings 直接打开设置（收藏这个地址就能少点一次）
+if (location.hash === '#settings') setTimeout(() => $('#btnSettings').click(), 400);
+</script>
+</body>
+</html>

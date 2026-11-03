@@ -1,0 +1,14 @@
+# Windows 批处理必须保持 GBK 编码 + CRLF 换行，
+# 否则 cmd 会报「不是内部或外部命令」并显示乱码（本项目踩过这个坑）
+*.bat -text
+*.cmd -text
+
+# 其余文本统一 LF，避免跨平台换行噪音
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+
+# 二进制
+*.png binary
+*.ico binary
